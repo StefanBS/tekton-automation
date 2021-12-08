@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: instant-search-demo-webhook
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /webhook/
+            pathType: Exact
+            backend:
+              service:
+                name: el-instant-search-demo-listener
+                port:
+                  number: 8080

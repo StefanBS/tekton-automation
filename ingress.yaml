@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: instant-search-demo
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /demo(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: instant-search-demo
+                port:
+                  number: 3000

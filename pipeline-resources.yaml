@@ -1,0 +1,25 @@
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: instant-search-demo-git
+spec:
+  type: git
+  params:
+    - name: revision
+      value: master
+    - name: url
+      value: {{ github_repo }}
+      # value: https://github.com/StefanBS/instant-search-demo
+
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: instant-search-demo-registry
+spec:
+  type: image
+  params:
+    - name: url
+      value: {{ container_registry }}
+      # value: quay.io/sbullone/instant-search-demo

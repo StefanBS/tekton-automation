@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: instant-search-demo-deployment
+  labels:
+    app: instant-search-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: instant-search-demo
+  template:
+    metadata:
+      labels:
+        app: instant-search-demo
+    spec:
+      containers:
+      - name: instant-search-demo
+        image: {{ container_registry }}
+        # image: quay.io/sbullone/instant-search-demo:latest
+        ports:
+        - containerPort: 3000

@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: tutorial-pipeline
+spec:
+  resources:
+    - name: source-repo
+      type: git
+    - name: docker-image
+      type: image
+  tasks:
+    - name: build-instant-search-demo
+      taskRef:
+        name: build-docker-image-from-git-source
+      resources:
+        inputs:
+          - name: docker-source
+            resource: source-repo
+        outputs:
+          - name: builtImage
+            resource: docker-image
+    - name: rollout-instant-search-demo-deployment
+      taskRef:
+        name: rollout-deployment
+      runAfter:
+        - build-instant-search-demo

@@ -1,0 +1,68 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: instant-search-demo-triggertemplate
+spec:
+  params:
+    - name: gitrevision
+      description: The git revision
+      default: master
+    - name: source-repo
+      description: The git repository url
+    - name: docker-image
+      description: The docker registry
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: tutorial-pipeline-run-
+        # namespace: $(tt.params.namespace)
+        namespace: instant-search-demo
+      spec:
+        serviceAccountName: tutorial-service
+        pipelineRef:
+          name: tutorial-pipeline
+        resources:
+          - name: source-repo
+            resourceSpec:
+              type: git
+              params:
+              - name: revision
+                # value: $(tt.params.gitrevision)
+                value: master
+              - name: url
+                # value: $(tt.params.source-repo)
+                value: {{ github_repo }}
+                # value: https://github.com/StefanBS/instant-search-demo
+          - name: docker-image
+            resourceSpec:
+              type: image
+              params:
+                - name: url
+                  value: {{ container_registry }}
+                  # value: quay.io/sbullone/instant-search-demo
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: instant-search-demo-pipelinebinding
+spec:
+  params:
+    - name: gitrevision
+      value: $(body.head_commit.id)
+    - name: namespace
+      value: getting-started
+    - name: gitrepositoryurl
+      value: "https://github.com/$(body.repository.full_name)"
+---
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: instant-search-demo-listener
+spec:
+  serviceAccountName: tutorial-service
+  triggers:
+    - bindings:
+      - ref: instant-search-demo-pipelinebinding
+      template:
+        ref: instant-search-demo-triggertemplate

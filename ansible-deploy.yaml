@@ -1,0 +1,143 @@
+---
+- name: Algolia test
+  hosts: vagrant
+
+  tasks:
+  # Necesssary for the instant-search-demo app
+  - ansible.posix.sysctl:
+      name: fs.inotify.max_user_watches
+      value: '50000'
+      sysctl_set: yes
+    become: yes
+
+  - name: extract kubeconfig from instance
+    ansible.builtin.fetch:
+      src: /etc/rancher/k3s/k3s.yaml
+      dest: ./kubeconfig
+      flat: yes
+
+  - name: install pip3
+    ansible.builtin.apt:
+      name: python3-pip
+    become: yes
+
+  - name: install python kubernetes package
+    ansible.builtin.pip:
+      name: kubernetes
+    become: yes
+
+  - name: download tekton-pipelines manifest to the cluster
+    ansible.builtin.get_url:
+      url: https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.28.2/release.yaml
+      dest: ~/tekton-pipelines.yaml
+      mode: '0664'
+
+  - name: install tekton-pipelines
+    kubernetes.core.k8s:
+      state: present
+      src: ~/tekton-pipelines.yaml
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: download tekton-triggers manifest to the cluster
+    ansible.builtin.get_url:
+      url: https://storage.googleapis.com/tekton-releases/triggers/previous/v0.16.1/release.yaml
+      dest: ~/tekton-triggers.yaml
+      mode: '0664'
+
+  - name: install tekton-triggers
+    kubernetes.core.k8s:
+      state: present
+      src: ~/tekton-triggers.yaml
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: download tekton-interceptors manifest to the cluster
+    ansible.builtin.get_url:
+      url: https://storage.googleapis.com/tekton-releases/triggers/previous/v0.16.1/interceptors.yaml
+      dest: ~/tekton-interceptors.yaml
+      mode: '0664'
+
+  - name: install tekton-interceptors
+    kubernetes.core.k8s:
+      state: present
+      src: ~/tekton-interceptors.yaml
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: create pipeline namespace
+    kubernetes.core.k8s:
+      name: instant-search-demo
+      state: present
+      api_version: v1
+      kind: Namespace
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: install rbac
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('file', 'rbac.yaml') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+  
+  - name: install secret
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('template', 'template/secret.yaml.j2') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+  
+  - name: install PipelineResources
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('template', 'template/pipeline-resources.yaml.j2') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+    retries: 3
+    delay: 10
+
+  - name: install Tasks
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('file', 'task.yaml') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: install Pipeline
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('file', 'pipeline.yaml') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: install Deployment
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('template', 'template/deployment.yaml.j2') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+  
+  - name: install Service
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('file', 'service.yaml') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: install Ingress
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('file', 'ingress.yaml') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: install ingress-webhook
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('file', 'ingress-webhook.yaml') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  - name: install pipeline trigger
+    kubernetes.core.k8s:
+      state: present
+      definition: "{{ lookup('template', 'template/triggers.yaml.j2') | from_yaml_all }}"
+      namespace: instant-search-demo
+      kubeconfig: /etc/rancher/k3s/k3s.yaml

@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tutorial-service
+secrets:
+  - name: regcred
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: triggers-example-eventlistener-binding
+subjects:
+- kind: ServiceAccount
+  name: tutorial-service
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-triggers-eventlistener-roles
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: triggers-eventlistener-clusterbinding
+subjects:
+- kind: ServiceAccount
+  name: tutorial-service
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-triggers-eventlistener-clusterroles
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deployment-role
+  namespace: instant-search-demo
+rules:
+  - apiGroups:
+        - ""
+        - apps
+    resources:
+      - deployments
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: configmaps-role
+  namespace: instant-search-demo
+rules:
+  - apiGroups:
+        - ""
+    resources:
+      - configmaps
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deployment-role-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: tutorial-service
+  namespace: instant-search-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deployment-role
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: configmaps-role-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: tutorial-service
+  namespace: instant-search-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: configmaps-role
+
+
+---
+# kind: Role
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: instant-search-demo-tekton
+rules:
+# Permissions for every EventListener deployment to function
+- apiGroups:
+  - triggers.tekton.dev
+  resources:
+  - eventlisteners
+  - triggerbindings
+  - triggertemplates
+  - clustertriggerbindings
+  - clusterinterceptors
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - delete
+# Permissions to create resources in associated TriggerTemplates
+- apiGroups:
+  - tekton.dev
+  resources:
+  - pipelineruns
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: instant-search-demo-tekton
+subjects:
+- kind: ServiceAccount
+  name: tutorial-service
+  namespace: instant-search-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: instant-search-demo-tekton
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: instant-search-demo-eventlistener
+subjects:
+- kind: ServiceAccount
+  name: tutorial-service
+  namespace: instant-search-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tekton-triggers-eventlistener-roles
